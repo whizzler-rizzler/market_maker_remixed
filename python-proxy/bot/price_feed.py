@@ -56,8 +56,24 @@ async def price_feed_worker():
 
 
 def get_price(symbol: str) -> Optional[float]:
-    """Get latest price from cache"""
-    return PRICE_CACHE.get(symbol)
+    """
+    Get latest price from cache
+    Handles both "BTC-USD" and "BTC" format
+    """
+    # Try full symbol first
+    price = PRICE_CACHE.get(symbol)
+    if price is not None:
+        return price
+    
+    # Try base currency (before dash) - Extended exchange uses "BTC" not "BTC-USD"
+    if "-" in symbol:
+        base = symbol.split("-")[0]
+        price = PRICE_CACHE.get(base)
+        if price is not None:
+            print(f"📊 Price for {symbol} found as {base}: ${price:,.2f}")
+            return price
+    
+    return None
 
 
 def start_price_feed():
