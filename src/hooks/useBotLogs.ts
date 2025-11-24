@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { API_ENDPOINTS } from '@/lib/config';
+import { useState, useEffect, useRef } from 'react';
+import { getWebSocketUrl } from '@/lib/config';
 
 interface BotLog {
   timestamp: string;
@@ -7,38 +7,57 @@ interface BotLog {
   message: string;
 }
 
-export const useBotLogs = (autoRefresh = true) => {
+export const useBotLogs = () => {
   const [logs, setLogs] = useState<BotLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchLogs = async () => {
-    try {
-      const response = await fetch(API_ENDPOINTS.botLogs);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch bot logs: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setLogs(data.logs || []);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      console.error('Error fetching bot logs:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    fetchLogs();
+    // Connect to live log streaming WebSocket
+    const wsUrl = `${getWebSocketUrl('https://market-maker-remixed.onrender.com')}/ws/bot-logs`;
+    console.log('🔌 [Bot Logs WS] Connecting to:', wsUrl);
     
-    if (autoRefresh) {
-      const interval = setInterval(fetchLogs, 2000); // Refresh every 2 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-  return { logs, isLoading, error, refetch: fetchLogs };
+    ws.onopen = () => {
+      console.log('✅ [Bot Logs WS] Connected');
+      setIsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'snapshot') {
+          // Initial snapshot - replace all logs
+          console.log(`📸 [Bot Logs WS] Received snapshot with ${data.logs.length} logs`);
+          setLogs(data.logs);
+        } else if (data.type === 'new_logs') {
+          // New logs - prepend to existing (newest first)
+          console.log(`📝 [Bot Logs WS] Received ${data.logs.length} new logs`);
+          setLogs(prev => [...data.logs, ...prev].slice(0, 100)); // Keep max 100
+        }
+      } catch (err) {
+        console.error('❌ [Bot Logs WS] Parse error:', err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('❌ [Bot Logs WS] Error:', error);
+      setIsConnected(false);
+    };
+
+    ws.onclose = () => {
+      console.log('👋 [Bot Logs WS] Disconnected');
+      setIsConnected(false);
+    };
+
+    return () => {
+      console.log('🔌 [Bot Logs WS] Cleaning up connection');
+      ws.close();
+    };
+  }, []);
+
+  return { logs, isConnected };
 };

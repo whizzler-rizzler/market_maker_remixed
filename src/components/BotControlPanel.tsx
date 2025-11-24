@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 export const BotControlPanel = () => {
   const { botStatus, isLoading, startBot, stopBot, updateConfig } = useBotStatus();
   const { prices: publicPrices, isConnected: wsConnected } = usePublicPricesWebSocket();
-  const { logs: botLogs, isLoading: logsLoading } = useBotLogs(true);
+  const { logs: botLogs, isConnected: logsWsConnected } = useBotLogs();
   const [liveMarkPrice, setLiveMarkPrice] = useState<number>(0);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
@@ -324,6 +324,12 @@ export const BotControlPanel = () => {
           <CardTitle className="flex items-center gap-2">
             <Terminal className="w-5 h-5" />
             Bot Logs (Backend)
+            {logsWsConnected && (
+              <Badge variant="outline" className="ml-auto">
+                <Wifi className="w-3 h-3 mr-1" />
+                Live
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
             Real-time bot activity and errors from Python backend
@@ -331,8 +337,8 @@ export const BotControlPanel = () => {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[300px] w-full rounded border bg-muted/30 p-4">
-            {logsLoading && botLogs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Loading logs...</p>
+            {!logsWsConnected ? (
+              <p className="text-sm text-muted-foreground">Connecting to logs stream...</p>
             ) : botLogs.length === 0 ? (
               <p className="text-sm text-muted-foreground">No logs available (bot may not be started)</p>
             ) : (

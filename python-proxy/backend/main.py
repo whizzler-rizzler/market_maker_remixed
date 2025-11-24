@@ -488,6 +488,50 @@ async def api_bot_logs(limit: int = 100):
         }
     except Exception as e:
         print(f"❌ Error getting bot logs: {e}")
+
+
+@app.websocket("/ws/bot-logs")
+async def websocket_bot_logs(websocket: WebSocket):
+    """
+    WebSocket endpoint for LIVE bot log streaming
+    Sends new logs in real-time as they appear
+    """
+    await websocket.accept()
+    print(f"✅ [WS Bot Logs] Client connected")
+    
+    try:
+        # Send initial snapshot of existing logs
+        existing_logs = get_bot_logs(limit=100)
+        await websocket.send_json({
+            "type": "snapshot",
+            "logs": existing_logs
+        })
+        
+        # Track last known log count to detect new logs
+        last_log_count = len(existing_logs)
+        
+        # Keep connection alive and check for new logs every 500ms
+        while True:
+            await asyncio.sleep(0.5)
+            
+            current_logs = get_bot_logs(limit=100)
+            current_count = len(current_logs)
+            
+            # If new logs appeared, send only the new ones
+            if current_count > last_log_count:
+                new_logs = current_logs[:current_count - last_log_count]
+                await websocket.send_json({
+                    "type": "new_logs",
+                    "logs": new_logs
+                })
+                last_log_count = current_count
+                
+    except WebSocketDisconnect:
+        print(f"👋 [WS Bot Logs] Client disconnected")
+    except Exception as e:
+        print(f"❌ [WS Bot Logs] Error: {e}")
+    finally:
+        print(f"🗑️ [WS Bot Logs] Connection closed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
