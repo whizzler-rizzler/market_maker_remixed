@@ -8,7 +8,7 @@ import { WebSocketDebugPanel } from "@/components/WebSocketDebugPanel";
 import { FrequencyMonitor } from "@/components/FrequencyMonitor";
 import { TradeHistory } from "@/components/TradeHistory";
 import { BotControlPanel } from "@/components/BotControlPanel";
-import { OrdersPanel } from "@/components/Orders/OrdersPanel";
+import { OpenOrdersPanel } from "@/components/Orders/OpenOrdersPanel";
 import { useExtendedWebSocket } from "@/hooks/useExtendedWebSocket";
 import { useAccountRestAPI } from "@/hooks/useAccountRestAPI";
 import { usePublicPricesWebSocket } from "@/hooks/usePublicPricesWebSocket";
@@ -402,7 +402,7 @@ const Index = () => {
                 }} 
               />
             ))}
-            <OrdersPanel />
+            <OpenOrdersPanel />
             <TradeHistory trades={tradeHistory.trades} />
           </div>
         </div>
