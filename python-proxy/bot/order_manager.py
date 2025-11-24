@@ -117,12 +117,13 @@ class OrderManager:
             print(f"🔐 SDK will automatically sign order...")
             
             # Place order - SDK handles signing automatically!
+            # Based on x10 SDK - use correct parameter names
             order = await self.client.orders.place_order(
-                market_name=market,
+                symbol=market,           # ✅ SDK uses 'symbol' not 'market_name'
+                quantity=size_decimal,   # ✅ SDK uses 'quantity' not 'size'
+                price=price_decimal,
                 side=order_side,
                 order_type=sdk_order_type,
-                size=size_decimal,
-                price=price_decimal,
                 expiration=expiration,
                 reduce_only=reduce_only,
                 post_only=post_only
