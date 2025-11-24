@@ -21,22 +21,38 @@ def get_current_price(market: str) -> float:
     """
     from shared_state import BROADCASTER_CACHE
     
-    # Try to get from positions data
-    positions = BROADCASTER_CACHE.get("positions", {})
-    if isinstance(positions, dict) and "data" in positions:
-        for position in positions["data"]:
-            if position.get("market") == market:
-                mark_price = position.get("mark_price")
-                if mark_price:
-                    return float(mark_price)
+    log_bot(f"Searching price for {market} in cache", "DEBUG")
     
-    # Try to get from balance data (has mark prices)
+    # Try to get from positions data (mark_price field)
+    positions = BROADCASTER_CACHE.get("positions", {})
+    log_bot(f"Positions cache type: {type(positions)}, keys: {positions.keys() if isinstance(positions, dict) else 'N/A'}", "DEBUG")
+    
+    if isinstance(positions, dict) and "data" in positions:
+        positions_data = positions.get("data", [])
+        log_bot(f"Found {len(positions_data) if isinstance(positions_data, list) else 0} positions", "DEBUG")
+        
+        if isinstance(positions_data, list):
+            for position in positions_data:
+                if position.get("market") == market:
+                    mark_price = position.get("mark_price") or position.get("markPrice")
+                    if mark_price:
+                        log_bot(f"Found price {mark_price} in positions for {market}", "DEBUG")
+                        return float(mark_price)
+    
+    # Try to get from balance data (mark_prices dictionary)
     balance = BROADCASTER_CACHE.get("balance", {})
     if isinstance(balance, dict) and "data" in balance:
-        mark_prices = balance.get("data", {}).get("mark_prices", {})
+        balance_data = balance.get("data", {})
+        mark_prices = balance_data.get("mark_prices", {}) or balance_data.get("markPrices", {})
+        log_bot(f"Balance mark_prices: {list(mark_prices.keys()) if mark_prices else 'None'}", "DEBUG")
+        
         if market in mark_prices:
-            return float(mark_prices[market])
+            price = float(mark_prices[market])
+            log_bot(f"Found price {price} in balance mark_prices for {market}", "DEBUG")
+            return price
     
+    # Log cache structure for debugging
+    log_bot(f"Cache structure - positions: {type(positions)}, balance: {type(balance)}", "ERROR")
     raise ValueError(f"Could not find price for market {market}")
 
 
