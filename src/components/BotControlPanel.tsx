@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useBotStatus } from '@/hooks/useBotStatus';
-import { Play, Square, Settings } from 'lucide-react';
+import { usePublicPricesWebSocket } from '@/hooks/usePublicPricesWebSocket';
+import { Play, Square, Settings, Wifi } from 'lucide-react';
 
 export const BotControlPanel = () => {
   const { botStatus, isLoading, startBot, stopBot, updateConfig } = useBotStatus();
+  const { prices: publicPrices, isConnected: wsConnected } = usePublicPricesWebSocket();
+  const [liveMarkPrice, setLiveMarkPrice] = useState<number>(0);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,10 +76,36 @@ export const BotControlPanel = () => {
     );
   }
 
+  // Get LIVE mark price from WebSocket for the configured market
+  useEffect(() => {
+    if (!botStatus?.config.market) return;
+    
+    const marketBase = botStatus.config.market.split('-')[0]; // "BTC"
+    const marketQuote = botStatus.config.market.split('-')[1]; // "USD"
+    
+    const possibleSymbols = [
+      `${marketBase}${marketQuote}`, // "BTCUSD"
+      `${marketBase}USDT`,           // "BTCUSDT"
+      `${marketBase}USD`,            // "BTCUSD"
+      marketBase,                    // "BTC"
+    ];
+    
+    const publicPrice = Array.from(publicPrices.values()).find((price: any) =>
+      possibleSymbols.includes(price.symbol)
+    );
+    
+    if (publicPrice) {
+      const wsPrice = parseFloat(publicPrice.price);
+      setLiveMarkPrice(wsPrice);
+      console.log(`✅ [BotControlPanel] LIVE WS price ${wsPrice} for ${botStatus.config.market} (${publicPrice.symbol})`);
+    }
+  }, [publicPrices, botStatus?.config.market]);
+
   const isRunning = botStatus?.running || false;
-  const currentPrice = botStatus?.last_quote_price || 0;
-  const bidPrice = botStatus?.current_quotes.bid || 0;
-  const askPrice = botStatus?.current_quotes.ask || 0;
+  const currentPrice = liveMarkPrice > 0 ? liveMarkPrice : (botStatus?.last_quote_price || 0);
+  const spread = botStatus?.config.spread_percentage || 0.001;
+  const bidPrice = currentPrice > 0 ? currentPrice * (1 - spread) : (botStatus?.current_quotes.bid || 0);
+  const askPrice = currentPrice > 0 ? currentPrice * (1 + spread) : (botStatus?.current_quotes.ask || 0);
   const activeOrders = botStatus?.active_orders || 0;
 
   return (
@@ -122,12 +151,17 @@ export const BotControlPanel = () => {
           {/* Live Stats */}
           <div className="space-y-2 pt-4 border-t">
             <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Live Statistics
+              <Wifi className={`w-4 h-4 ${liveMarkPrice > 0 ? 'text-success animate-pulse' : 'text-muted-foreground'}`} />
+              Live Statistics {liveMarkPrice > 0 ? '(WebSocket)' : '(Polling)'}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p className="text-muted-foreground">Current Price</p>
+                <p className="text-muted-foreground flex items-center gap-1">
+                  Current Price
+                  {liveMarkPrice > 0 && (
+                    <span className="text-xs text-success">🔴 LIVE</span>
+                  )}
+                </p>
                 <p className="font-mono font-bold">
                   {currentPrice > 0 ? `$${currentPrice.toFixed(2)}` : 'N/A'}
                 </p>
@@ -137,13 +171,23 @@ export const BotControlPanel = () => {
                 <p className="font-mono font-bold">{activeOrders}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Bid Quote</p>
+                <p className="text-muted-foreground flex items-center gap-1">
+                  Bid Quote
+                  {liveMarkPrice > 0 && (
+                    <span className="text-xs text-success">🔴 LIVE</span>
+                  )}
+                </p>
                 <p className="font-mono font-bold text-green-500">
                   {bidPrice > 0 ? `$${bidPrice.toFixed(2)}` : 'N/A'}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Ask Quote</p>
+                <p className="text-muted-foreground flex items-center gap-1">
+                  Ask Quote
+                  {liveMarkPrice > 0 && (
+                    <span className="text-xs text-success">🔴 LIVE</span>
+                  )}
+                </p>
                 <p className="font-mono font-bold text-red-500">
                   {askPrice > 0 ? `$${askPrice.toFixed(2)}` : 'N/A'}
                 </p>
