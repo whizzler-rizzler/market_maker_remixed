@@ -33,7 +33,7 @@ except Exception as e:
         enabled = False
 
 # Import orders poller
-from backend.orders.orders_poller import orders_poller, get_cached_orders
+from backend.orders.orders_poller import orders_poller, get_cached_orders, ORDERS_CACHE
 
 app = FastAPI(title="Extended API Broadcaster Proxy")
 
@@ -202,6 +202,8 @@ async def background_poller():
     # Start orders poller in separate task
     asyncio.create_task(orders_poller())
     
+    prev_orders = None
+    
     while True:
         try:
             # Fast polling: positions + balance
@@ -212,6 +214,21 @@ async def background_poller():
             if TRADES_POLL_COUNTER >= 20:
                 await poll_trades()
                 TRADES_POLL_COUNTER = 0
+            
+            # Sync orders from poller to broadcaster cache
+            if ORDERS_CACHE["orders"]:
+                current_orders = ORDERS_CACHE["orders"].get("data", [])
+                BROADCASTER_CACHE["orders"] = current_orders
+                BROADCASTER_CACHE["last_update"]["orders"] = ORDERS_CACHE["last_update"]
+                
+                # Broadcast orders diff if changed
+                if current_orders != prev_orders:
+                    await broadcast_to_clients({
+                        "type": "orders",
+                        "data": current_orders,
+                        "timestamp": int(time.time() * 1000)
+                    })
+                    prev_orders = current_orders
             
             # Wait 250ms before next cycle (4x per second)
             await asyncio.sleep(0.25)
@@ -252,6 +269,7 @@ async def health_check():
                 BROADCASTER_CACHE["positions"] is not None,
                 BROADCASTER_CACHE["balance"] is not None,
                 BROADCASTER_CACHE["trades"] is not None,
+                BROADCASTER_CACHE["orders"] is not None,
             ])
         }
     }
@@ -274,10 +292,12 @@ async def get_cached_account():
         "positions": BROADCASTER_CACHE["positions"] or [],
         "balance": BROADCASTER_CACHE["balance"],
         "trades": BROADCASTER_CACHE["trades"] or [],
+        "orders": BROADCASTER_CACHE["orders"] or [],
         "cache_age_ms": {
             "positions": int((current_time - BROADCASTER_CACHE["last_update"]["positions"]) * 1000) if BROADCASTER_CACHE["last_update"]["positions"] > 0 else None,
             "balance": int((current_time - BROADCASTER_CACHE["last_update"]["balance"]) * 1000) if BROADCASTER_CACHE["last_update"]["balance"] > 0 else None,
             "trades": int((current_time - BROADCASTER_CACHE["last_update"]["trades"]) * 1000) if BROADCASTER_CACHE["last_update"]["trades"] > 0 else None,
+            "orders": int((current_time - BROADCASTER_CACHE["last_update"]["orders"]) * 1000) if BROADCASTER_CACHE["last_update"]["orders"] > 0 else None,
         },
         "last_update": {
             "positions": BROADCASTER_CACHE["last_update"]["positions"],
@@ -305,14 +325,17 @@ async def broadcaster_stats():
             "positions_initialized": BROADCASTER_CACHE["positions"] is not None,
             "balance_initialized": BROADCASTER_CACHE["balance"] is not None,
             "trades_initialized": BROADCASTER_CACHE["trades"] is not None,
+            "orders_initialized": BROADCASTER_CACHE["orders"] is not None,
             "positions_age_seconds": int(current_time - BROADCASTER_CACHE["last_update"]["positions"]) if BROADCASTER_CACHE["last_update"]["positions"] > 0 else None,
             "balance_age_seconds": int(current_time - BROADCASTER_CACHE["last_update"]["balance"]) if BROADCASTER_CACHE["last_update"]["balance"] > 0 else None,
             "trades_age_seconds": int(current_time - BROADCASTER_CACHE["last_update"]["trades"]) if BROADCASTER_CACHE["last_update"]["trades"] > 0 else None,
+            "orders_age_seconds": int(current_time - BROADCASTER_CACHE["last_update"]["orders"]) if BROADCASTER_CACHE["last_update"]["orders"] > 0 else None,
         },
         "last_poll": {
             "positions": BROADCASTER_CACHE["last_update"]["positions"],
             "balance": BROADCASTER_CACHE["last_update"]["balance"],
             "trades": BROADCASTER_CACHE["last_update"]["trades"],
+            "orders": BROADCASTER_CACHE["last_update"]["orders"],
         }
     }
 
@@ -342,6 +365,7 @@ async def websocket_broadcast(websocket: WebSocket):
             "positions": BROADCASTER_CACHE["positions"],
             "balance": BROADCASTER_CACHE["balance"],
             "trades": BROADCASTER_CACHE["trades"],
+            "orders": BROADCASTER_CACHE["orders"],
             "timestamp": time.time()
         }
         await websocket.send_json(snapshot)
