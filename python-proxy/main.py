@@ -1,12 +1,14 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import aiohttp
 import asyncio
 import os
-from typing import Dict, Any, Set
+from typing import Dict, Any, Set, Optional, Literal
 import json
 import time
 from datetime import datetime
+from order_manager import get_order_manager
 
 app = FastAPI(title="Extended API Broadcaster Proxy")
 
@@ -344,6 +346,85 @@ async def websocket_broadcast(websocket: WebSocket):
         # Remove client from broadcast set
         BROADCAST_CLIENTS.discard(websocket)
         print(f"🗑️ [WS] Client removed (remaining: {len(BROADCAST_CLIENTS)})")
+
+
+# ============= ORDER MANAGEMENT ENDPOINTS =============
+
+class CreateOrderRequest(BaseModel):
+    market: str
+    side: Literal["BUY", "SELL"]
+    price: str
+    size: str
+    timeInForce: Literal["POST_ONLY", "GTC", "IOC", "FOK"] = "POST_ONLY"
+    reduceOnly: bool = False
+
+@app.post("/api/orders/create")
+async def create_order(order_request: CreateOrderRequest):
+    """
+    Create a new order on Extended Exchange
+    Supports POST_ONLY for market making
+    """
+    try:
+        manager = get_order_manager()
+        result = await manager.create_order(
+            market=order_request.market,
+            side=order_request.side,
+            price=order_request.price,
+            size=order_request.size,
+            time_in_force=order_request.timeInForce,
+            reduce_only=order_request.reduceOnly,
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(
+                status_code=result.get("status", 500),
+                detail=result.get("error", "Order creation failed")
+            )
+    except Exception as e:
+        print(f"❌ Error in create_order endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders")
+async def get_open_orders(market: Optional[str] = None):
+    """
+    Get all open orders, optionally filtered by market
+    """
+    try:
+        manager = get_order_manager()
+        result = await manager.get_open_orders(market=market)
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(
+                status_code=result.get("status", 500),
+                detail=result.get("error", "Failed to fetch orders")
+            )
+    except Exception as e:
+        print(f"❌ Error in get_open_orders endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/orders/{order_id}")
+async def cancel_order(order_id: str):
+    """
+    Cancel an order by ID
+    """
+    try:
+        manager = get_order_manager()
+        result = await manager.cancel_order(order_id)
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(
+                status_code=result.get("status", 500),
+                detail=result.get("error", "Failed to cancel order")
+            )
+    except Exception as e:
+        print(f"❌ Error in cancel_order endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============= LEGACY ENDPOINTS (for backward compatibility) =============
