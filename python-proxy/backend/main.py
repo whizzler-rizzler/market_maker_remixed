@@ -15,6 +15,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bot.order_manager import get_order_manager
+from bot.price_feed import start_price_feed
 
 # Try to import bot module with error handling
 try:
@@ -219,11 +220,16 @@ async def background_poller():
 @app.on_event("startup")
 async def startup_broadcaster():
     """
-    Start the background poller when the app starts.
+    Start the background poller and price feed when the app starts.
     """
     print("⚡ [Startup] Initializing broadcaster...")
     asyncio.create_task(background_poller())
     print("✅ [Startup] Broadcaster initialized")
+    
+    # Start price feed WebSocket
+    print("⚡ [Startup] Initializing price feed...")
+    start_price_feed()
+    print("✅ [Startup] Price feed initialized")
 
 
 # ============= REST API ENDPOINTS =============
