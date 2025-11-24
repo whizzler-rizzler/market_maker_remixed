@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, Literal
 
 # x10 SDK - handles signing automatically
 from x10.perpetual.accounts import StarkPerpetualAccount
-from x10.perpetual.configuration import STARKNET_MAINNET_CONFIG
+from x10.perpetual.configuration import STARKEX_MAINNET_CONFIG
 from x10.perpetual.trading_client import PerpetualTradingClient
 from x10.perpetual.orders import OrderSide, OrderType
 
@@ -46,7 +46,7 @@ class OrderManager:
         
         # Create trading client with Starknet mainnet config
         self.client = PerpetualTradingClient.create(
-            STARKNET_MAINNET_CONFIG,
+            STARKEX_MAINNET_CONFIG,
             self.account
         )
         
