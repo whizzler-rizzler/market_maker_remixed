@@ -6,6 +6,8 @@ import asyncio
 from typing import Dict, Optional, Any
 from .config import config
 from order_manager import get_order_manager
+from bot_logger import log_bot
+
 
 # Global state
 ACTIVE_BOT_ORDERS: Dict[str, Dict] = {}
@@ -86,7 +88,7 @@ async def place_mm_orders(bid: float, ask: float, size: str, market: str) -> Dic
     if sell_order_id:
         ACTIVE_BOT_ORDERS[sell_order_id] = {"side": "SELL", "price": ask, "size": size}
     
-    print(f"✅ Bot orders placed: BUY @ {bid:.2f}, SELL @ {ask:.2f}")
+    log_bot(f"Orders placed: BUY @ {bid:.2f}, SELL @ {ask:.2f}", "INFO")
     
     return {"buy_order_id": buy_order_id, "sell_order_id": sell_order_id}
 
@@ -107,11 +109,11 @@ async def cancel_all_bot_orders():
         try:
             await asyncio.to_thread(order_manager.cancel_order, order_id)
         except Exception as e:
-            print(f"⚠️ Failed to cancel order {order_id}: {e}")
+            log_bot(f"Failed to cancel order {order_id}: {e}", "WARNING")
     
     count = len(ACTIVE_BOT_ORDERS)
     ACTIVE_BOT_ORDERS.clear()
-    print(f"🗑️ Cancelled {count} bot orders")
+    log_bot(f"Cancelled {count} bot orders", "INFO")
 
 
 def should_refresh_quotes(current_price: float, last_price: float, threshold: float) -> bool:
@@ -124,7 +126,7 @@ def should_refresh_quotes(current_price: float, last_price: float, threshold: fl
     price_change = abs(current_price - last_price) / last_price
     
     if price_change > threshold:
-        print(f"🔄 Price changed {price_change:.2%}, refreshing quotes")
+        log_bot(f"Price changed {price_change:.2%}, refreshing quotes", "INFO")
         return True
     
     return False
@@ -136,7 +138,7 @@ async def bot_main_loop():
     """
     global LAST_QUOTE_PRICE, ACTIVE_BOT_ORDERS
     
-    print("🚀 Market Making Bot started")
+    log_bot("Market Making Bot started", "INFO")
     
     try:
         while config.enabled:
@@ -144,7 +146,7 @@ async def bot_main_loop():
             try:
                 current_price = get_current_price(config.market)
             except Exception as e:
-                print(f"❌ Failed to get price: {e}")
+                log_bot(f"Failed to get price: {e}", "ERROR")
                 await asyncio.sleep(config.refresh_interval)
                 continue
             
@@ -161,22 +163,22 @@ async def bot_main_loop():
                 try:
                     await place_mm_orders(bid, ask, config.order_size, config.market)
                     LAST_QUOTE_PRICE = current_price
-                    print(f"✅ Bot quotes updated: {bid:.2f} / {ask:.2f} (price: {current_price:.2f})")
+                    log_bot(f"Quotes updated: {bid:.2f} / {ask:.2f} (price: {current_price:.2f})", "INFO")
                 except Exception as e:
-                    print(f"❌ Failed to place orders: {e}")
+                    log_bot(f"Failed to place orders: {e}", "ERROR")
             else:
-                print(f"⏸️ No refresh needed (price: {current_price:.2f}, last: {LAST_QUOTE_PRICE:.2f})")
+                log_bot(f"No refresh needed (price: {current_price:.2f}, last: {LAST_QUOTE_PRICE:.2f})", "DEBUG")
             
             # 6. Wait
             await asyncio.sleep(config.refresh_interval)
     
     except Exception as e:
-        print(f"❌ Bot loop error: {e}")
+        log_bot(f"Bot loop error: {e}", "ERROR")
         config.enabled = False
     finally:
         # Cleanup on stop
         await cancel_all_bot_orders()
-        print("🛑 Market Making Bot stopped")
+        log_bot("Market Making Bot stopped", "INFO")
 
 
 async def start_bot() -> Dict[str, Any]:

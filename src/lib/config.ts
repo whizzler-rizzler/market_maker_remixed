@@ -21,4 +21,5 @@ export const API_ENDPOINTS = {
   botStop: `${PYTHON_PROXY_URL}/api/bot/stop`,
   botStatus: `${PYTHON_PROXY_URL}/api/bot/status`,
   botConfig: `${PYTHON_PROXY_URL}/api/bot/config`,
+    botLogs: `${PYTHON_PROXY_URL}/api/bot/logs`,
 } as const;
