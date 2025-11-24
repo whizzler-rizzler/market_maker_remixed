@@ -8,6 +8,8 @@ export const OrdersPanel = () => {
   const { extendedData } = useExtendedWebSocket();
   const orders = extendedData.orders || [];
   const lastUpdate = extendedData.lastUpdate.orders || new Date().toLocaleTimeString('pl-PL');
+  
+  console.log('📋 [OrdersPanel] Rendering with orders:', orders, 'lastUpdate:', lastUpdate);
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('pl-PL');
