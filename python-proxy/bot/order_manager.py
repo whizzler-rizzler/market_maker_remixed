@@ -20,9 +20,11 @@ STARKEX_MAINNET_CONFIG = EndpointConfig(
     stream_url="wss://api.extended.exchange/stream.extended.exchange/v1",
     onboarding_url="https://api.extended.exchange",
     signing_domain="extended.exchange",
+    starknet_domain="extended.exchange",
     collateral_asset_contract="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     asset_operations_contract="0x1cE5D7f52A8aBd23551e91248151CA5A13353C65",
     collateral_asset_on_chain_id="0x2893294412a4c8f915f75892b395ebbf6859ec246ec365c3b1f56f47c3a0a5d",
+    collateral_asset_id="0x2893294412a4c8f915f75892b395ebbf6859ec246ec365c3b1f56f47c3a0a5d",
     collateral_decimals=6,
 )
 
