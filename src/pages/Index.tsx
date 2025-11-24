@@ -7,6 +7,7 @@ import { RestAPIDebugPanel } from "@/components/RestAPIDebugPanel";
 import { WebSocketDebugPanel } from "@/components/WebSocketDebugPanel";
 import { FrequencyMonitor } from "@/components/FrequencyMonitor";
 import { TradeHistory } from "@/components/TradeHistory";
+import { OrderPanel } from "@/components/OrderPanel";
 import { useExtendedWebSocket } from "@/hooks/useExtendedWebSocket";
 import { useAccountRestAPI } from "@/hooks/useAccountRestAPI";
 import { usePublicPricesWebSocket } from "@/hooks/usePublicPricesWebSocket";
@@ -343,6 +344,15 @@ const Index = () => {
           lastWsUpdate={lastWsUpdate}
           isWsConnected={isConnected}
         />
+
+        {/* Market Making Bot Order Panel */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-6 bg-primary rounded-full" />
+            <h2 className="text-xl font-bold text-primary">MARKET MAKING BOT</h2>
+          </div>
+          <OrderPanel />
+        </div>
 
         {/* Overview Section */}
         <div className="space-y-4">
