@@ -3,7 +3,7 @@
  */
 
 // Python proxy URL for Extended API
-export const PYTHON_PROXY_URL = import.meta.env.VITE_PYTHON_PROXY_URL || 'https://extended-account-stream.onrender.com';
+export const PYTHON_PROXY_URL = import.meta.env.VITE_PYTHON_PROXY_URL || 'https://market-maker-remixed.onrender.com';
 
 // Convert HTTP URL to WebSocket URL
 export const getWebSocketUrl = (httpUrl: string): string => {
