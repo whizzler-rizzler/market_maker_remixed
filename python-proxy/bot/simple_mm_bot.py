@@ -5,6 +5,7 @@ Automatically places and refreshes POST_ONLY bid/ask orders around market price
 import asyncio
 from typing import Dict, Optional, Any
 from .config import config
+from .price_feed import get_price, start_price_feed
 from bot.order_manager import get_order_manager
 from bot.bot_logger import log_bot
 
@@ -17,45 +18,18 @@ bot_task: Optional[asyncio.Task] = None
 
 def get_current_price(market: str) -> float:
     """
-    Get current market price from broadcaster cache (uses live mark_price from balance data)
+    Get current market price from WebSocket price feed
     """
-    from backend.shared_state import BROADCASTER_CACHE
+    log_bot(f"Getting price for {market} from price feed", "DEBUG")
     
+    price = get_price(market)
     
-    log_bot(f"Searching price for {market} in cache", "DEBUG")
+    if price is None:
+        log_bot(f"❌ No price available for {market} - WebSocket may not be connected", "ERROR")
+        raise ValueError(f"No price available for {market} - WebSocket may not be connected")
     
-    # PRIORITY 1: Try to get from balance data (mark_prices dictionary) - most reliable and updated via WebSocket
-    balance = BROADCASTER_CACHE.get("balance", {})
-    if isinstance(balance, dict) and "data" in balance:
-        balance_data = balance.get("data", {})
-        mark_prices = balance_data.get("mark_prices", {}) or balance_data.get("markPrices", {})
-        log_bot(f"Balance mark_prices available: {list(mark_prices.keys()) if mark_prices else 'None'}", "DEBUG")
-        
-        if market in mark_prices:
-            price = float(mark_prices[market])
-            log_bot(f"✅ Found LIVE price {price} in balance mark_prices for {market}", "INFO")
-            return price
-    
-    # PRIORITY 2: Fallback to positions data (mark_price field) - may be stale
-    positions = BROADCASTER_CACHE.get("positions", {})
-    log_bot(f"Positions cache type: {type(positions)}, keys: {positions.keys() if isinstance(positions, dict) else 'N/A'}", "DEBUG")
-    
-    if isinstance(positions, dict) and "data" in positions:
-        positions_data = positions.get("data", [])
-        log_bot(f"Found {len(positions_data) if isinstance(positions_data, list) else 0} positions", "DEBUG")
-        
-        if isinstance(positions_data, list):
-            for position in positions_data:
-                if position.get("market") == market:
-                    mark_price = position.get("mark_price") or position.get("markPrice")
-                    if mark_price:
-                        log_bot(f"⚠️ Using FALLBACK price {mark_price} from positions for {market}", "WARNING")
-                        return float(mark_price)
-    
-    # Log cache structure for debugging
-    log_bot(f"❌ Cache structure - positions: {type(positions)}, balance: {type(balance)}", "ERROR")
-    log_bot(f"❌ Available markets in balance: {list(mark_prices.keys()) if mark_prices else 'None'}", "ERROR")
-    raise ValueError(f"Could not find price for market {market} in broadcaster cache")
+    log_bot(f"✅ Got price {price} for {market}", "INFO")
+    return price
 
 
 def calculate_quotes(price: float, spread: float) -> tuple[float, float]:
@@ -217,6 +191,10 @@ async def start_bot() -> Dict[str, Any]:
     
     if bot_task is not None and not bot_task.done():
         return {"status": "already_running", "config": config.__dict__}
+    
+    # Start price feed WebSocket
+    start_price_feed()
+    log_bot("Price feed started", "INFO")
     
     # Reset state on start
     LAST_QUOTE_PRICE = 0
