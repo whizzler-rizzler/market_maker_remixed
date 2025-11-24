@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-const PYTHON_PROXY_URL = import.meta.env.VITE_PYTHON_PROXY_URL || 'https://extended-account-stream.onrender.com';
-
-// Convert HTTP URL to WebSocket URL for BROADCASTER
-const getWebSocketUrl = (httpUrl: string): string => {
-  return httpUrl.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws/broadcast';
-};
+import { API_ENDPOINTS } from '@/lib/config';
 
 interface ExtendedMessage {
   type: 'snapshot' | 'positions' | 'balance' | 'trades' | 'ping';
@@ -59,9 +53,8 @@ export const useExtendedWebSocket = (): UseExtendedWebSocketReturn => {
         reconnectTimeoutRef.current = null;
       }
 
-      const wsUrl = getWebSocketUrl(PYTHON_PROXY_URL);
+      const wsUrl = API_ENDPOINTS.websocketBroadcast;
       console.log(`🔌 [WebSocket] Connection attempt #${reconnectAttemptsRef.current + 1}`);
-      console.log('🔌 [WebSocket] Proxy URL:', PYTHON_PROXY_URL);
       console.log('🔌 [WebSocket] Full WS URL:', wsUrl);
       
       const ws = new WebSocket(wsUrl);

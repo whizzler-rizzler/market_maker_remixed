@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_ENDPOINTS } from '@/lib/config';
 
 interface BroadcasterStats {
   broadcaster?: {
@@ -22,7 +23,6 @@ interface BroadcasterStatsData {
   error: string | null;
 }
 
-const API_URL = 'https://extended-account-stream.onrender.com/api/broadcaster/stats';
 const POLL_INTERVAL = 2000; // 2 seconds
 
 export const useBroadcasterStats = () => {
@@ -35,7 +35,7 @@ export const useBroadcasterStats = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_ENDPOINTS.broadcasterStats);
       const result = await response.json();
       
       setData({

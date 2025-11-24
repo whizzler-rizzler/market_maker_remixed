@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_ENDPOINTS } from '@/lib/config';
 
 interface Position {
   market: string;
@@ -51,7 +52,7 @@ export const useAccountRestAPI = () => {
 
   const fetchAccountData = async () => {
     try {
-      const response = await fetch('https://extended-account-stream.onrender.com/api/cached-account');
+      const response = await fetch(API_ENDPOINTS.cachedAccount);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
