@@ -32,6 +32,9 @@ except Exception as e:
     class bot_config:
         enabled = False
 
+# Import orders poller
+from backend.orders.orders_poller import orders_poller, get_cached_orders
+
 app = FastAPI(title="Extended API Broadcaster Proxy")
 
 # CORS configuration
@@ -195,6 +198,9 @@ async def background_poller():
     global TRADES_POLL_COUNTER
     
     print("🚀 [Broadcaster] Background poller started")
+    
+    # Start orders poller in separate task
+    asyncio.create_task(orders_poller())
     
     while True:
         try:
@@ -494,6 +500,16 @@ async def api_bot_logs(limit: int = 100):
         }
     except Exception as e:
         print(f"❌ Error getting bot logs: {e}")
+
+
+@app.get("/api/orders")
+async def api_orders():
+    """Get cached open orders (polled 2x/sec)"""
+    try:
+        return get_cached_orders()
+    except Exception as e:
+        print(f"❌ Error getting orders: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.websocket("/ws/bot-logs")
