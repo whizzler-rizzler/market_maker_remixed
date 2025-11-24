@@ -303,6 +303,7 @@ async def get_cached_account():
             "positions": BROADCASTER_CACHE["last_update"]["positions"],
             "balance": BROADCASTER_CACHE["last_update"]["balance"],
             "trades": BROADCASTER_CACHE["last_update"]["trades"],
+            "orders": BROADCASTER_CACHE["last_update"]["orders"],
         }
     }
 

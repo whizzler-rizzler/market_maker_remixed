@@ -37,8 +37,8 @@ export const useOpenOrders = () => {
       
       console.log('📋 [useOpenOrders] Cached response:', result);
       
-      // Extract orders from cached account data
-      const orders = result.orders || [];
+      // Extract orders from cached account data (backend returns flat array now)
+      const orders = Array.isArray(result.orders) ? result.orders : [];
       
       setData({
         orders: orders,
