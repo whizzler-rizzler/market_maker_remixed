@@ -8,10 +8,7 @@ import os
 import time
 import json
 from typing import Dict, Any, Optional, Literal
-from starknet_py.hash.utils import pedersen_hash
-from ecdsa import SigningKey, SECP256k1
-from ecdsa.util import sigencode_string
-from eth_utils import to_checksum_address
+from starkware.crypto.signature.signature import sign, pedersen_hash, verify, private_to_stark_key
 
 class OrderManager:
     def __init__(self):
@@ -28,6 +25,16 @@ class OrderManager:
         if not all([self.api_key, self.starknet_public_key, self.starknet_private_key]):
             raise ValueError("Missing required Extended API credentials in environment variables")
         
+        # Verify public key matches private key
+        try:
+            expected_public = private_to_stark_key(int(self.starknet_private_key, 16))
+            actual_public = int(self.starknet_public_key, 16)
+            if expected_public != actual_public:
+                raise ValueError(f"Public key mismatch! Expected {hex(expected_public)}, got {hex(actual_public)}")
+            print(f"✅ Key pair verified - public key matches private key")
+        except Exception as e:
+            print(f"⚠️ Could not verify key pair: {e}")
+        
         print(f"✅ OrderManager initialized")
         print(f"   Client ID: {self.client_id}")
         print(f"   Vault: {self.vault_number}")
@@ -35,55 +42,73 @@ class OrderManager:
 
     def generate_order_hash(self, order_params: Dict[str, Any]) -> int:
         """
-        Generate order hash for Starknet signature
-        Based on Extended's order structure
+        Generate order hash for Starknet signature using Pedersen hash
+        Compatible with StarkEx perpetual exchange format
         """
         # Extract order parameters
         market = order_params["market"]
         side = order_params["side"]  # BUY or SELL
-        order_type = order_params["type"]  # LIMIT
         price = order_params["price"]
         size = order_params["size"]
+        time_in_force = order_params["timeInForce"]
+        reduce_only = order_params["reduceOnly"]
         
-        # Convert to Starknet format
-        # This is a simplified hash - need to match Extended's exact format
-        elements = [
-            int(self.starknet_public_key, 16),
-            int(market.encode().hex(), 16) % (2**251),  # market as felt
-            1 if side == "BUY" else 2,  # side as felt
-            int(float(price) * 10**8),  # price with 8 decimals
-            int(float(size) * 10**8),  # size with 8 decimals
-            int(time.time()),  # timestamp
-        ]
+        # Convert market to market ID (simplified - may need Extended's actual market IDs)
+        market_bytes = market.encode('utf-8')
+        market_id = int.from_bytes(market_bytes[:31], byteorder='big') % (2**251)
         
-        # Pedersen hash chain
-        order_hash = elements[0]
-        for element in elements[1:]:
-            order_hash = pedersen_hash(order_hash, element)
+        # Convert side to integer (0 = BUY, 1 = SELL for StarkEx)
+        side_int = 0 if side == "BUY" else 1
+        
+        # Price and size with 8 decimal precision
+        price_scaled = int(float(price) * 10**8)
+        size_scaled = int(float(size) * 10**8)
+        
+        # Nonce (timestamp in seconds)
+        nonce = int(time.time())
+        
+        # Convert time_in_force to integer
+        tif_map = {"POST_ONLY": 3, "GTC": 0, "IOC": 1, "FOK": 2}
+        tif_int = tif_map.get(time_in_force, 0)
+        
+        # Reduce only flag
+        reduce_only_int = 1 if reduce_only else 0
+        
+        # Build hash using Pedersen hash chain (StarkEx format)
+        # Hash chain: market_id -> side -> price -> size -> nonce -> tif -> reduce_only
+        order_hash = pedersen_hash(market_id, side_int)
+        order_hash = pedersen_hash(order_hash, price_scaled)
+        order_hash = pedersen_hash(order_hash, size_scaled)
+        order_hash = pedersen_hash(order_hash, nonce)
+        order_hash = pedersen_hash(order_hash, tif_int)
+        order_hash = pedersen_hash(order_hash, reduce_only_int)
+        
+        print(f"   Hash components: market_id={market_id}, side={side_int}, price={price_scaled}, size={size_scaled}")
         
         return order_hash
 
     def sign_order(self, order_hash: int) -> tuple[int, int]:
         """
-        Sign order hash with Starknet private key using ECDSA
-        Returns (r, s) signature components
+        Sign order hash with Starknet private key using starkware crypto
+        Returns (r, s) signature components compatible with StarkEx
         """
-        # Convert private key to bytes
+        # Convert private key from hex string to integer
         private_key_int = int(self.starknet_private_key, 16)
-        private_key_bytes = private_key_int.to_bytes(32, byteorder='big')
         
-        # Create signing key
-        signing_key = SigningKey.from_string(private_key_bytes, curve=SECP256k1)
+        # Sign using starkware's sign function (returns r, s)
+        r, s = sign(msg_hash=order_hash, priv_key=private_key_int)
         
-        # Convert order hash to bytes
-        hash_bytes = order_hash.to_bytes(32, byteorder='big')
+        print(f"   Signature generated: r={hex(r)[:16]}..., s={hex(s)[:16]}...")
         
-        # Sign the hash
-        signature_bytes = signing_key.sign_digest(hash_bytes, sigencode=sigencode_string)
+        # Verify signature locally before sending
+        public_key_int = int(self.starknet_public_key, 16)
+        is_valid = verify(msg_hash=order_hash, r=r, s=s, public_key=public_key_int)
         
-        # Extract r and s components (each is 32 bytes)
-        r = int.from_bytes(signature_bytes[:32], byteorder='big')
-        s = int.from_bytes(signature_bytes[32:64], byteorder='big')
+        if is_valid:
+            print(f"   ✅ Signature verified locally")
+        else:
+            print(f"   ❌ WARNING: Signature verification failed locally!")
+            raise ValueError("Signature verification failed - will not send order")
         
         return (r, s)
 
