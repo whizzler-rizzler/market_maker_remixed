@@ -180,24 +180,37 @@ class OrderManager:
                     json=order_params,
                     timeout=aiohttp.ClientTimeout(total=10.0)
                 ) as response:
-                    response_data = await response.json()
-                    
-                    if response.status in [200, 201]:
-                        print(f"✅ Order created successfully!")
-                        print(f"   Order ID: {response_data.get('id', 'N/A')}")
-                        return {
-                            "success": True,
-                            "data": response_data,
-                            "status": response.status
-                        }
-                    else:
+                    # Check status first
+                    if response.status not in [200, 201]:
+                        response_text = await response.text()
                         print(f"❌ Order failed: HTTP {response.status}")
-                        print(f"   Response: {response_data}")
+                        print(f"   Response: {response_text[:200]}")
                         return {
                             "success": False,
-                            "error": response_data,
+                            "error": f"HTTP {response.status}: {response_text[:200]}",
                             "status": response.status
                         }
+                    
+                    # Try to parse JSON
+                    try:
+                        response_data = await response.json()
+                    except Exception as json_err:
+                        response_text = await response.text()
+                        print(f"❌ Failed to parse JSON response: {json_err}")
+                        print(f"   Response text: {response_text[:200]}")
+                        return {
+                            "success": False,
+                            "error": f"Invalid JSON response: {response_text[:200]}",
+                            "status": response.status
+                        }
+                    
+                    print(f"✅ Order created successfully!")
+                    print(f"   Order ID: {response_data.get('id', 'N/A')}")
+                    return {
+                        "success": True,
+                        "data": response_data,
+                        "status": response.status
+                    }
         except Exception as e:
             print(f"❌ Error creating order: {e}")
             return {

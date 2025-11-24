@@ -75,7 +75,7 @@ async def place_mm_orders(bid: float, ask: float, size: str, market: str) -> Dic
     
     order_manager = get_order_manager()
     
-    # Place BUY order (order_manager.create_order is already async)
+    # Place BUY order
     buy_order = await order_manager.create_order(
         market=market,
         side="BUY",
@@ -95,16 +95,28 @@ async def place_mm_orders(bid: float, ask: float, size: str, market: str) -> Dic
         reduce_only=False
     )
     
-    # Track orders
-    buy_order_id = buy_order.get("data", {}).get("order_id")
-    sell_order_id = sell_order.get("data", {}).get("order_id")
+    # Track orders only if successful
+    buy_order_id = None
+    sell_order_id = None
     
-    if buy_order_id:
-        ACTIVE_BOT_ORDERS[buy_order_id] = {"side": "BUY", "price": bid, "size": size}
-    if sell_order_id:
-        ACTIVE_BOT_ORDERS[sell_order_id] = {"side": "SELL", "price": ask, "size": size}
+    if buy_order.get("success"):
+        buy_order_id = buy_order.get("data", {}).get("id") or buy_order.get("data", {}).get("order_id")
+        if buy_order_id:
+            ACTIVE_BOT_ORDERS[buy_order_id] = {"side": "BUY", "price": bid, "size": size}
+            log_bot(f"✅ BUY order placed @ {bid:.2f}", "INFO")
+    else:
+        log_bot(f"❌ BUY order failed: {buy_order.get('error', 'Unknown error')}", "ERROR")
     
-    log_bot(f"Orders placed: BUY @ {bid:.2f}, SELL @ {ask:.2f}", "INFO")
+    if sell_order.get("success"):
+        sell_order_id = sell_order.get("data", {}).get("id") or sell_order.get("data", {}).get("order_id")
+        if sell_order_id:
+            ACTIVE_BOT_ORDERS[sell_order_id] = {"side": "SELL", "price": ask, "size": size}
+            log_bot(f"✅ SELL order placed @ {ask:.2f}", "INFO")
+    else:
+        log_bot(f"❌ SELL order failed: {sell_order.get('error', 'Unknown error')}", "ERROR")
+    
+    if not buy_order.get("success") and not sell_order.get("success"):
+        raise Exception("Both orders failed to place")
     
     return {"buy_order_id": buy_order_id, "sell_order_id": sell_order_id}
 
