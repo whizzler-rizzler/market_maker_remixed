@@ -409,24 +409,13 @@ async def create_order(order_request: CreateOrderRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/orders")
-async def get_open_orders(market: Optional[str] = None):
+async def get_open_orders():
     """
-    Get all open orders, optionally filtered by market
+    Get cached open orders from orders poller (2x per second refresh)
+    ✅ NO rate limits - served from memory
+    ✅ Orders are polled separately every 0.5s
     """
-    try:
-        manager = get_order_manager()
-        result = await manager.get_open_orders(market=market)
-        
-        if result["success"]:
-            return result
-        else:
-            raise HTTPException(
-                status_code=result.get("status", 500),
-                detail=result.get("error", "Failed to fetch orders")
-            )
-    except Exception as e:
-        print(f"❌ Error in get_open_orders endpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_cached_orders()
 
 @app.delete("/api/orders/{order_id}")
 async def cancel_order(order_id: str):
