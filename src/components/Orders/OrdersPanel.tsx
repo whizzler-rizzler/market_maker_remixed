@@ -1,11 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOrders } from "@/hooks/Orders/useOrders";
+import { useExtendedWebSocket } from "@/hooks/useExtendedWebSocket";
 import { FileText, Clock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
 export const OrdersPanel = () => {
-  const { orders, lastUpdate } = useOrders();
+  const { extendedData } = useExtendedWebSocket();
+  const orders = extendedData.orders || [];
+  const lastUpdate = extendedData.lastUpdate.orders || new Date().toLocaleTimeString('pl-PL');
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('pl-PL');
@@ -38,7 +40,7 @@ export const OrdersPanel = () => {
           OTWARTE ZLECENIA
           <span className="ml-auto text-sm text-muted-foreground flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            {lastUpdate.toLocaleTimeString('pl-PL')}
+            {lastUpdate}
           </span>
         </CardTitle>
       </CardHeader>

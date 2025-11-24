@@ -9,10 +9,12 @@ BROADCASTER_CACHE: Dict[str, Any] = {
     "positions": None,
     "balance": None,
     "trades": None,
+    "orders": None,
     "last_update": {
         "positions": 0,
         "balance": 0,
         "trades": 0,
+        "orders": 0,
     }
 }
 

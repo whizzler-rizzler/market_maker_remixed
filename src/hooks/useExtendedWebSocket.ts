@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { API_ENDPOINTS } from '@/lib/config';
 
 interface ExtendedMessage {
-  type: 'snapshot' | 'positions' | 'balance' | 'trades' | 'ping';
+  type: 'snapshot' | 'positions' | 'balance' | 'trades' | 'orders' | 'ping';
   data?: any;
   positions?: any[];
   balance?: any;
   trades?: any[];
+  orders?: any[];
   timestamp?: number;
 }
 
@@ -17,6 +18,7 @@ interface UseExtendedWebSocketReturn {
   extendedData: {
     balance?: any;
     positions?: any[];
+    orders?: any[];
     lastUpdate: Record<string, string>;
   };
 }
@@ -33,8 +35,10 @@ export const useExtendedWebSocket = (): UseExtendedWebSocketReturn => {
       availableForTrade?: string;
       availableForWithdrawal?: string;
     };
+    orders?: any[];
     lastUpdate: {
       balance?: string;
+      orders?: string;
     };
   }>({
     lastUpdate: {},
@@ -80,20 +84,25 @@ export const useExtendedWebSocket = (): UseExtendedWebSocketReturn => {
             setError(null);
             
             // Extract critical balance fields from snapshot
+            const updates: any = { lastUpdate: {} };
+            
             if (message.balance) {
               const bal = message.balance.balance ?? message.balance;
-              const criticalBalance = {
+              updates.balance = {
                 marginRatio: bal.marginRatio,
                 equity: bal.equity,
                 availableForTrade: bal.availableForTrade,
                 availableForWithdrawal: bal.availableForWithdrawal,
               };
-              
-              setExtendedData({
-                balance: criticalBalance,
-                lastUpdate: { balance: now },
-              });
+              updates.lastUpdate.balance = now;
             }
+            
+            if (message.orders) {
+              updates.orders = message.orders;
+              updates.lastUpdate.orders = now;
+            }
+            
+            setExtendedData(updates);
             return;
           }
 
@@ -134,6 +143,22 @@ export const useExtendedWebSocket = (): UseExtendedWebSocketReturn => {
           // Handle trades diff update
           if (message.type === 'trades') {
             console.log('📜 [Broadcaster] Trades update (diff)');
+            setLastMessage(message as ExtendedMessage);
+          }
+
+          // Handle orders diff update
+          if (message.type === 'orders' && message.data) {
+            console.log('📋 [Broadcaster] Orders update');
+            
+            setExtendedData(prev => ({
+              ...prev,
+              orders: message.data,
+              lastUpdate: {
+                ...prev.lastUpdate,
+                orders: now,
+              }
+            }));
+
             setLastMessage(message as ExtendedMessage);
           }
 
