@@ -469,6 +469,33 @@ async def get_trades():
 
 
 # ============= MARKET MAKING BOT ENDPOINTS =============
+from bot_logger import get_bot_logs, clear_bot_logs
+
+@app.get("/api/bot/logs")
+async def api_bot_logs(limit: int = 100):
+    """Get recent bot logs from memory"""
+    try:
+        logs = get_bot_logs(limit=limit)
+        return {
+            "logs": logs,
+            "total": len(logs)
+        }
+    except Exception as e:
+        print(f"❌ Error getting bot logs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/bot/logs")
+async def api_clear_bot_logs():
+    """Clear all bot logs"""
+    try:
+        clear_bot_logs()
+        return {"status": "cleared"}
+    except Exception as e:
+        print(f"❌ Error clearing bot logs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/bot/start")
 async def api_start_bot():
     """Start the market making bot"""
