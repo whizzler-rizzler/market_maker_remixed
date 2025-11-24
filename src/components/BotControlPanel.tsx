@@ -21,9 +21,18 @@ export const BotControlPanel = () => {
   });
 
   const handleStart = async () => {
+    console.log('🚀 [BotControlPanel] Start button clicked!', {
+      isRunning,
+      isStarting,
+      botStatus,
+    });
     setIsStarting(true);
     try {
+      console.log('📞 [BotControlPanel] Calling startBot()...');
       await startBot();
+      console.log('✅ [BotControlPanel] startBot() completed');
+    } catch (err) {
+      console.error('❌ [BotControlPanel] startBot() failed:', err);
     } finally {
       setIsStarting(false);
     }
