@@ -22,12 +22,12 @@ app.add_middleware(
 )
 
 # Configuration from environment variables
-EXTENDED_API_KEY = os.getenv("EXTENDED_API_KEY")
+EXTENDED_API_KEY = os.getenv("Extended_1_API_KEY")
 EXTENDED_API_BASE_URL = os.getenv("EXTENDED_API_BASE_URL", "https://api.starknet.extended.exchange/api/v1")
 BASE_URL = EXTENDED_API_BASE_URL.rstrip("/")
 
 if not EXTENDED_API_KEY:
-    raise ValueError("EXTENDED_API_KEY environment variable is required")
+    raise ValueError("Extended_1_API_KEY environment variable is required")
 
 print(f"✅ Extended API Key configured")
 print(f"🎯 BASE_URL: {BASE_URL}")

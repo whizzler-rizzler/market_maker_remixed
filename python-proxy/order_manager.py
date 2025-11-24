@@ -15,15 +15,15 @@ from eth_utils import to_checksum_address
 
 class OrderManager:
     def __init__(self):
-        self.api_key = os.getenv("EXTENDED_API_KEY")
+        self.api_key = os.getenv("Extended_1_API_KEY")
         self.base_url = os.getenv("EXTENDED_API_BASE_URL", "https://api.starknet.extended.exchange/api/v1")
         self.base_url = self.base_url.rstrip("/")
         
         # Starknet credentials from environment
-        self.starknet_public_key = os.getenv("Extended_2_D61658C_STARKNET_PUBLIC")
-        self.starknet_private_key = os.getenv("Extended_2_D61658C_STARKNET_PRIVATE")
-        self.client_id = os.getenv("Extended_2_D61658C_CLIENT_ID")
-        self.vault_number = os.getenv("Extended_2_D61658C_VAULT_NUMBER")
+        self.starknet_public_key = os.getenv("Extended_1_Stark_Key_Public")
+        self.starknet_private_key = os.getenv("Extended_1_Stark_Key_Private")
+        self.client_id = os.getenv("Extended_1_Client_Id")
+        self.vault_number = os.getenv("Extended_1_Vault_Number")
         
         if not all([self.api_key, self.starknet_public_key, self.starknet_private_key]):
             raise ValueError("Missing required Extended API credentials in environment variables")
