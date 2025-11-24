@@ -9,7 +9,7 @@ import time
 import json
 from typing import Dict, Any, Optional, Literal
 from starknet_py.hash.utils import pedersen_hash
-from starknet_py.utils.crypto.facade import sign_calldata
+from starknet_py.net.signer.key_pair import KeyPair
 from eth_utils import to_checksum_address
 
 class OrderManager:
@@ -67,9 +67,12 @@ class OrderManager:
         Sign order hash with Starknet private key
         Returns (r, s) signature components
         """
-        private_key_int = int(self.starknet_private_key, 16)
-        signature = sign_calldata(order_hash, private_key_int)
-        return signature
+        # Create KeyPair from private key
+        key_pair = KeyPair.from_private_key(int(self.starknet_private_key, 16))
+        # Sign the hash
+        signature = key_pair.sign_hash(order_hash)
+        # Return (r, s) components
+        return (signature[0], signature[1])
 
     async def create_order(
         self,
