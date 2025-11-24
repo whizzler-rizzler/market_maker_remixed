@@ -9,7 +9,21 @@ import json
 import time
 from datetime import datetime
 from order_manager import get_order_manager
-from bot.simple_mm_bot import start_bot, stop_bot, get_bot_status, config as bot_config
+
+# Try to import bot module with error handling
+try:
+    from bot.simple_mm_bot import start_bot, stop_bot, get_bot_status, config as bot_config
+    print("✅ Bot module imported successfully")
+    BOT_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Bot module import failed: {e}")
+    BOT_AVAILABLE = False
+    # Define dummy functions if import fails
+    async def start_bot(): return {"error": "Bot module not available"}
+    async def stop_bot(): return {"error": "Bot module not available"}
+    def get_bot_status(): return {"error": "Bot module not available"}
+    class bot_config:
+        enabled = False
 
 app = FastAPI(title="Extended API Broadcaster Proxy")
 
@@ -213,6 +227,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "extended-broadcaster-proxy",
+        "bot_module_available": BOT_AVAILABLE,
         "broadcaster": {
             "connected_clients": len(BROADCAST_CLIENTS),
             "cache_initialized": all([
@@ -458,8 +473,12 @@ async def get_trades():
 async def api_start_bot():
     """Start the market making bot"""
     try:
+        if not BOT_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Bot module not available")
         result = await start_bot()
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error starting bot: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -469,8 +488,12 @@ async def api_start_bot():
 async def api_stop_bot():
     """Stop the market making bot"""
     try:
+        if not BOT_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Bot module not available")
         result = await stop_bot()
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error stopping bot: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -480,7 +503,11 @@ async def api_stop_bot():
 async def api_bot_status():
     """Get current bot status and statistics"""
     try:
+        if not BOT_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Bot module not available")
         return get_bot_status()
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error getting bot status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -498,6 +525,9 @@ class BotConfigUpdate(BaseModel):
 async def api_update_bot_config(update: BotConfigUpdate):
     """Update bot configuration (only when bot is stopped)"""
     try:
+        if not BOT_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Bot module not available")
+        
         if bot_config.enabled:
             raise HTTPException(
                 status_code=400, 
