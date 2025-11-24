@@ -52,14 +52,20 @@ export const useBotStatus = () => {
   }, []);
 
   const startBot = async () => {
+    console.log('🎯 [useBotStatus] startBot called, endpoint:', API_ENDPOINTS.botStart);
     try {
+      console.log('📤 [useBotStatus] Sending POST request...');
       const response = await fetch(API_ENDPOINTS.botStart, {
         method: 'POST',
       });
+      console.log('📥 [useBotStatus] Response received:', response.status, response.statusText);
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [useBotStatus] Response not OK:', errorText);
         throw new Error('Failed to start bot');
       }
       const data = await response.json();
+      console.log('✅ [useBotStatus] Bot started successfully:', data);
       toast({
         title: "Bot Started",
         description: `Market making bot is now running on ${data.config.market}`,
@@ -67,6 +73,7 @@ export const useBotStatus = () => {
       await fetchStatus();
       return data;
     } catch (err) {
+      console.error('❌ [useBotStatus] startBot error:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       toast({
         title: "Failed to Start Bot",
