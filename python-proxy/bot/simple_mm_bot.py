@@ -201,10 +201,14 @@ async def start_bot() -> Dict[str, Any]:
     """
     Start the market making bot
     """
-    global bot_task
+    global bot_task, LAST_QUOTE_PRICE, ACTIVE_BOT_ORDERS
     
     if bot_task is not None and not bot_task.done():
         return {"status": "already_running", "config": config.__dict__}
+    
+    # Reset state on start
+    LAST_QUOTE_PRICE = 0
+    ACTIVE_BOT_ORDERS.clear()
     
     config.enabled = True
     bot_task = asyncio.create_task(bot_main_loop())
