@@ -9,7 +9,8 @@ import time
 import json
 from typing import Dict, Any, Optional, Literal
 from starknet_py.hash.utils import pedersen_hash
-from starknet_py.net.signer.key_pair import KeyPair
+from ecdsa import SigningKey, SECP256k1
+from ecdsa.util import sigencode_string
 from eth_utils import to_checksum_address
 
 class OrderManager:
@@ -64,15 +65,27 @@ class OrderManager:
 
     def sign_order(self, order_hash: int) -> tuple[int, int]:
         """
-        Sign order hash with Starknet private key
+        Sign order hash with Starknet private key using ECDSA
         Returns (r, s) signature components
         """
-        # Create KeyPair from private key
-        key_pair = KeyPair.from_private_key(int(self.starknet_private_key, 16))
+        # Convert private key to bytes
+        private_key_int = int(self.starknet_private_key, 16)
+        private_key_bytes = private_key_int.to_bytes(32, byteorder='big')
+        
+        # Create signing key
+        signing_key = SigningKey.from_string(private_key_bytes, curve=SECP256k1)
+        
+        # Convert order hash to bytes
+        hash_bytes = order_hash.to_bytes(32, byteorder='big')
+        
         # Sign the hash
-        signature = key_pair.sign_hash(order_hash)
-        # Return (r, s) components
-        return (signature[0], signature[1])
+        signature_bytes = signing_key.sign_digest(hash_bytes, sigencode=sigencode_string)
+        
+        # Extract r and s components (each is 32 bytes)
+        r = int.from_bytes(signature_bytes[:32], byteorder='big')
+        s = int.from_bytes(signature_bytes[32:64], byteorder='big')
+        
+        return (r, s)
 
     async def create_order(
         self,
