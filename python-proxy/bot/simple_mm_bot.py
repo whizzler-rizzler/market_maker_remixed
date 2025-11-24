@@ -73,9 +73,8 @@ async def place_mm_orders(bid: float, ask: float, size: str, market: str) -> Dic
     
     order_manager = get_order_manager()
     
-    # Place BUY order
-    buy_order = await asyncio.to_thread(
-        order_manager.create_order,
+    # Place BUY order (order_manager.create_order is already async)
+    buy_order = await order_manager.create_order(
         market=market,
         side="BUY",
         price=str(bid),
@@ -85,8 +84,7 @@ async def place_mm_orders(bid: float, ask: float, size: str, market: str) -> Dic
     )
     
     # Place SELL order
-    sell_order = await asyncio.to_thread(
-        order_manager.create_order,
+    sell_order = await order_manager.create_order(
         market=market,
         side="SELL",
         price=str(ask),
@@ -123,7 +121,7 @@ async def cancel_all_bot_orders():
     
     for order_id in order_ids:
         try:
-            await asyncio.to_thread(order_manager.cancel_order, order_id)
+            await order_manager.cancel_order(order_id)
         except Exception as e:
             log_bot(f"Failed to cancel order {order_id}: {e}", "WARNING")
     
