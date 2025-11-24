@@ -17,4 +17,8 @@ export const API_ENDPOINTS = {
   cancelOrder: (orderId: string) => `${PYTHON_PROXY_URL}/api/orders/${orderId}`,
   broadcasterStats: `${PYTHON_PROXY_URL}/api/broadcaster/stats`,
   websocketBroadcast: `${getWebSocketUrl(PYTHON_PROXY_URL)}/ws/broadcast`,
+  botStart: `${PYTHON_PROXY_URL}/api/bot/start`,
+  botStop: `${PYTHON_PROXY_URL}/api/bot/stop`,
+  botStatus: `${PYTHON_PROXY_URL}/api/bot/status`,
+  botConfig: `${PYTHON_PROXY_URL}/api/bot/config`,
 } as const;
