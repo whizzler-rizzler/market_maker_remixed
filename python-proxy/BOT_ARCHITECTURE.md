@@ -46,7 +46,7 @@ Bot market makingowy dla giełdy Extended oparty o Python (backend na Render) i 
 
 ## Komponenty
 
-### 1. Order Manager (`order_manager.py`)
+### 1. Order Manager (`bot/order_manager.py`)
 
 Moduł odpowiedzialny za składanie i zarządzanie zleceniami:
 
@@ -65,7 +65,7 @@ Moduł odpowiedzialny za składanie i zarządzanie zleceniami:
 - `timeInForce` - POST_ONLY (market making), GTC, IOC, FOK
 - `reduceOnly` - Czy tylko redukcja pozycji
 
-### 2. Broadcaster Module (istniejący w `main.py`)
+### 2. Broadcaster Module (`backend/main.py`)
 
 System real-time aktualizacji:
 - Poluje dane co 250ms (positions + balance)

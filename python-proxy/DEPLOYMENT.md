@@ -19,8 +19,11 @@
 
 ### Step 2: Configure Build Settings
 
+**IMPORTANT:** Ustaw Root Directory na `python-proxy/backend`
+
 ```
-Build Command: pip install -r python-proxy/requirements.txt
+Root Directory: python-proxy/backend
+Build Command: pip install -r requirements.txt
 Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
@@ -39,7 +42,7 @@ Extended_2_D61658C_VAULT_NUMBER=your_vault_number
 
 ### Step 4: Deploy
 
-1. Set Root Directory to `python-proxy`
+1. Make sure Root Directory is set to `python-proxy/backend`
 2. Click "Create Web Service"
 3. Wait for deployment to complete
 
