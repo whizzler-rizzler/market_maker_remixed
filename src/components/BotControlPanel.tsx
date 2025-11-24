@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useBotStatus } from '@/hooks/useBotStatus';
 import { usePublicPricesWebSocket } from '@/hooks/usePublicPricesWebSocket';
-import { Play, Square, Settings, Wifi } from 'lucide-react';
+import { useBotLogs } from '@/hooks/useBotLogs';
+import { Play, Square, Settings, Wifi, Terminal } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const BotControlPanel = () => {
   const { botStatus, isLoading, startBot, stopBot, updateConfig } = useBotStatus();
   const { prices: publicPrices, isConnected: wsConnected } = usePublicPricesWebSocket();
+  const { logs: botLogs, isLoading: logsLoading } = useBotLogs(true);
   const [liveMarkPrice, setLiveMarkPrice] = useState<number>(0);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
@@ -312,6 +315,50 @@ export const BotControlPanel = () => {
               Stop the bot to modify configuration
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Bot Logs Panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Terminal className="w-5 h-5" />
+            Bot Logs (Backend)
+          </CardTitle>
+          <CardDescription>
+            Real-time bot activity and errors from Python backend
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px] w-full rounded border bg-muted/30 p-4">
+            {logsLoading && botLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Loading logs...</p>
+            ) : botLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No logs available (bot may not be started)</p>
+            ) : (
+              <div className="space-y-1 font-mono text-xs">
+                {botLogs.map((log, idx) => {
+                  const levelColor = 
+                    log.level === 'ERROR' ? 'text-destructive font-bold' :
+                    log.level === 'WARNING' ? 'text-orange-500' :
+                    log.level === 'INFO' ? 'text-primary' :
+                    'text-muted-foreground';
+                  
+                  const time = new Date(log.timestamp).toLocaleTimeString();
+                  
+                  return (
+                    <div key={idx} className="flex gap-2">
+                      <span className="text-muted-foreground shrink-0">{time}</span>
+                      <span className={`font-semibold shrink-0 ${levelColor}`}>[{log.level}]</span>
+                      <span className={log.level === 'ERROR' ? 'text-destructive' : 'text-foreground'}>
+                        {log.message}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
