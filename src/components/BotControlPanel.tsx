@@ -65,17 +65,6 @@ export const BotControlPanel = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>🤖 Market Making Bot</CardTitle>
-          <CardDescription>Loading bot status...</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   // Get LIVE mark price from WebSocket for the configured market
   useEffect(() => {
     if (!botStatus?.config.market) return;
@@ -100,6 +89,17 @@ export const BotControlPanel = () => {
       console.log(`✅ [BotControlPanel] LIVE WS price ${wsPrice} for ${botStatus.config.market} (${publicPrice.symbol})`);
     }
   }, [publicPrices, botStatus?.config.market]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>🤖 Market Making Bot</CardTitle>
+          <CardDescription>Loading bot status...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   const isRunning = botStatus?.running || false;
   const currentPrice = liveMarkPrice > 0 ? liveMarkPrice : (botStatus?.last_quote_price || 0);
