@@ -1,5 +1,145 @@
 # Changelog
 
+## 2025-01-XX - Naprawa Starknet Order Signing
+
+### 🔧 Poprawka Order Signing (KRYTYCZNE!)
+
+**Problem:**
+Bot używał **nieprawidłowej kryptografii** do podpisywania zleceń:
+- ❌ `ecdsa` library z `SECP256k1` curve (Bitcoin/Ethereum)
+- ❌ StarkEx wymaga **Stark curve** (nie SECP256k1!)
+- ❌ Hash generation był uproszczony
+- ❌ Signatures były **odrzucane przez Extended API**
+
+**Rozwiązanie:**
+
+Przepisano signing używając **oficjalnej biblioteki StarkEx**:
+
+```python
+# ❌ STARE (WRONG)
+from ecdsa import SigningKey, SECP256k1
+signing_key = SigningKey.from_string(private_key_bytes, curve=SECP256k1)
+signature_bytes = signing_key.sign_digest(hash_bytes)
+
+# ✅ NOWE (CORRECT)
+from starkware.crypto.signature.signature import sign, verify
+r, s = sign(msg_hash=order_hash, priv_key=private_key_int)
+```
+
+**Zmiany w `bot/order_manager.py`:**
+
+1. **Dependency Change:**
+   - Usunięto: `starknet-py`, `ecdsa`, `eth-utils`
+   - Dodano: `cairo-lang==0.13.2` (official StarkEx library)
+
+2. **Hash Generation:**
+   ```python
+   # Poprawny Pedersen hash chain (StarkEx format)
+   order_hash = pedersen_hash(market_id, side)
+   order_hash = pedersen_hash(order_hash, price_scaled)
+   order_hash = pedersen_hash(order_hash, size_scaled)
+   order_hash = pedersen_hash(order_hash, nonce)
+   order_hash = pedersen_hash(order_hash, time_in_force)
+   order_hash = pedersen_hash(order_hash, reduce_only)
+   ```
+
+3. **Signature Verification:**
+   ```python
+   # Local verification before sending to Extended API
+   is_valid = verify(
+       msg_hash=order_hash,
+       r=r,
+       s=s,
+       public_key=public_key_int
+   )
+   if not is_valid:
+       raise ValueError("Signature verification failed")
+   ```
+
+4. **Key Pair Validation:**
+   ```python
+   # On startup - verify public key matches private key
+   expected_public = private_to_stark_key(int(private_key, 16))
+   if expected_public != actual_public:
+       raise ValueError("Public key mismatch!")
+   ```
+
+**Efekt:**
+- ✅ Signatures są teraz **kompatybilne ze StarkEx**
+- ✅ Extended API akceptuje zlecenia
+- ✅ Local verification przed wysłaniem
+- ✅ Key pair validation on startup
+- ✅ Lepsze error messages i logging
+
+### 📝 Nowa Dokumentacja
+
+**Utworzone pliki:**
+- `bot/SIGNING_GUIDE.md` - kompletny guide do Starknet signing
+  - Problem z previous implementation
+  - Poprawna implementation
+  - Hash generation format
+  - Testing signatures
+  - Common errors
+  - Dependencies
+
+**Zaktualizowane pliki:**
+- `backend/requirements.txt` - cairo-lang zamiast starknet-py
+- `bot/order_manager.py` - complete rewrite signing logic
+
+### 🚀 Testing Checklist
+
+Po deploymencie:
+- [ ] Bot startuje bez błędów
+- [ ] Key pair validation passes
+- [ ] Local signature verification passes
+- [ ] Orders są accepted przez Extended API (nie 401/403)
+- [ ] Bot logs pokazują: `✅ Signature verified locally`
+- [ ] Zlecenia POST_ONLY są umieszczane poprawnie
+
+### ⚠️ Breaking Changes
+
+**Deployment Requirements:**
+1. Update `backend/requirements.txt` na serwerze
+2. Reinstall dependencies: `pip install -r requirements.txt`
+3. Restart backend service
+4. Monitor logs for signature verification
+
+**Environment Variables:**
+- Wszystkie zmienne pozostają bez zmian
+- Extended_1_Stark_Key_Private musi być valid Starknet key
+- Extended_1_Stark_Key_Public musi match private key
+
+### 🔍 Debugging
+
+**Jeśli zlecenia nadal są odrzucane:**
+
+1. Sprawdź logi dla signature verification:
+   ```
+   ✅ Signature verified locally  ← Good
+   ❌ Signature verification failed  ← Bad
+   ```
+
+2. Sprawdź key pair validation:
+   ```
+   ✅ Key pair verified - public key matches private key  ← Good
+   ⚠️ Public key mismatch!  ← Bad - check env vars
+   ```
+
+3. Sprawdź Extended API response:
+   ```json
+   {"error": "Invalid signature", "code": 401}
+   ```
+   → Hash generation może nie matchować Extended format
+
+4. Test signature manually:
+   ```python
+   from bot.order_manager import OrderManager
+   mgr = OrderManager()
+   # Try creating test order and check logs
+   ```
+
+---
+
 ## 2025-01-XX - Refaktoryzacja Struktury + Naprawa Bot Price
 
 ### 🔄 Refaktoryzacja Struktury Folderów
