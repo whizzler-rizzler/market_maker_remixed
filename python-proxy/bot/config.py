@@ -7,7 +7,7 @@ class BotConfig:
     """Configuration for the market making bot"""
     
     # Trading parameters
-    market: str = "BTC-PERP"
+    market: str = "BTC-USD"
     spread_percentage: float = 0.001  # 0.1% spread
     order_size: str = "0.01"
     
