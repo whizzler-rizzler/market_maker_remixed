@@ -34,20 +34,8 @@ print(f"✅ Extended API Key configured")
 print(f"🎯 BASE_URL: {BASE_URL}")
 
 # ============= BROADCASTER GLOBAL STATE =============
-# Cache for broadcaster - this is the single source of truth
-BROADCASTER_CACHE: Dict[str, Any] = {
-    "positions": None,
-    "balance": None,
-    "trades": None,
-    "last_update": {
-        "positions": 0,
-        "balance": 0,
-        "trades": 0,
-    }
-}
-
-# Set of connected WebSocket clients
-BROADCAST_CLIENTS: Set[WebSocket] = set()
+# Import shared state to avoid circular dependencies
+from shared_state import BROADCASTER_CACHE, BROADCAST_CLIENTS
 
 # Poller state tracking
 TRADES_POLL_COUNTER = 0  # Counter to track when to poll trades (every 20 cycles = 5 seconds)
