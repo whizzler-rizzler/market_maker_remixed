@@ -4,10 +4,16 @@ from pydantic import BaseModel
 import aiohttp
 import asyncio
 import os
+import sys
+from pathlib import Path
 from typing import Dict, Any, Set, Optional, Literal
 import json
 import time
 from datetime import datetime
+
+# Add parent directory to Python path to import bot module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from bot.order_manager import get_order_manager
 
 # Try to import bot module with error handling
