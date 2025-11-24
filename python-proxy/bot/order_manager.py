@@ -8,9 +8,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Literal
 
 # x10 SDK - handles signing automatically
-# x10 SDK - use prebuilt config
+# x10 SDK - use prebuilt config from SDK
 from x10.perpetual.accounts import StarkPerpetualAccount
-from x10.perpetual.configuration import STARKEX_MAINNET_CONFIG
+from x10.perpetual.configuration import STARKNET_MAINNET_CONFIG
 from x10.perpetual.trading_client import PerpetualTradingClient
 from x10.perpetual.orders import OrderSide, OrderType
 
@@ -47,7 +47,7 @@ class OrderManager:
         
         # Create trading client - positional args
         self.client = PerpetualTradingClient(
-            STARKEX_MAINNET_CONFIG,  # endpoint_config
+            STARKNET_MAINNET_CONFIG,  # endpoint_config
             self.account              # stark_account
         )
         
