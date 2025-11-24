@@ -9,6 +9,7 @@ import json
 import time
 from datetime import datetime
 from order_manager import get_order_manager
+from bot.simple_mm_bot import start_bot, stop_bot, get_bot_status, config as bot_config
 
 app = FastAPI(title="Extended API Broadcaster Proxy")
 
@@ -462,6 +463,85 @@ async def get_trades():
     if result is None:
         raise HTTPException(status_code=503, detail="Extended API unavailable")
     return result
+
+
+# ============= MARKET MAKING BOT ENDPOINTS =============
+@app.post("/api/bot/start")
+async def api_start_bot():
+    """Start the market making bot"""
+    try:
+        result = await start_bot()
+        return result
+    except Exception as e:
+        print(f"❌ Error starting bot: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/bot/stop")
+async def api_stop_bot():
+    """Stop the market making bot"""
+    try:
+        result = await stop_bot()
+        return result
+    except Exception as e:
+        print(f"❌ Error stopping bot: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bot/status")
+async def api_bot_status():
+    """Get current bot status and statistics"""
+    try:
+        return get_bot_status()
+    except Exception as e:
+        print(f"❌ Error getting bot status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class BotConfigUpdate(BaseModel):
+    market: Optional[str] = None
+    spread_percentage: Optional[float] = None
+    order_size: Optional[str] = None
+    refresh_interval: Optional[int] = None
+    price_move_threshold: Optional[float] = None
+
+
+@app.post("/api/bot/config")
+async def api_update_bot_config(update: BotConfigUpdate):
+    """Update bot configuration (only when bot is stopped)"""
+    try:
+        if bot_config.enabled:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot update config while bot is running. Stop the bot first."
+            )
+        
+        if update.market is not None:
+            bot_config.market = update.market
+        if update.spread_percentage is not None:
+            bot_config.spread_percentage = update.spread_percentage
+        if update.order_size is not None:
+            bot_config.order_size = update.order_size
+        if update.refresh_interval is not None:
+            bot_config.refresh_interval = update.refresh_interval
+        if update.price_move_threshold is not None:
+            bot_config.price_move_threshold = update.price_move_threshold
+        
+        return {
+            "status": "updated",
+            "config": {
+                "market": bot_config.market,
+                "spread_percentage": bot_config.spread_percentage,
+                "order_size": bot_config.order_size,
+                "refresh_interval": bot_config.refresh_interval,
+                "price_move_threshold": bot_config.price_move_threshold
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error updating bot config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
