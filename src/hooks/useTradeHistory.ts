@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_ENDPOINTS } from '@/lib/config';
 
 interface Trade {
   id: string;
@@ -20,7 +21,6 @@ interface TradeHistoryData {
   lastUpdate: Date;
 }
 
-const API_URL = 'https://extended-account-stream.onrender.com/api/cached-account';
 const POLL_INTERVAL = 5000; // 5 seconds
 
 export const useTradeHistory = () => {
@@ -32,7 +32,7 @@ export const useTradeHistory = () => {
 
   const fetchTradeHistory = async () => {
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_ENDPOINTS.cachedAccount);
       const result = await response.json();
       
       console.log('📜 [useTradeHistory] Cached response:', result);

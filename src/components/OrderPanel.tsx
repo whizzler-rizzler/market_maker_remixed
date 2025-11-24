@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-
-const PYTHON_PROXY_URL = import.meta.env.VITE_PYTHON_PROXY_URL || 'https://extended-account-stream.onrender.com';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { API_ENDPOINTS } from '@/lib/config';
+import { validateOrderForm, type OrderFormData } from '@/lib/orderValidation';
 
 export const OrderPanel = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // Order form state
   const [market, setMarket] = useState('BTC-PERP');
@@ -23,10 +25,26 @@ export const OrderPanel = () => {
   const [reduceOnly, setReduceOnly] = useState(false);
 
   const handleSubmitOrder = async () => {
-    if (!price || !size) {
+    // Clear previous validation errors
+    setValidationErrors([]);
+
+    // Validate form data
+    const formData = {
+      market: market.toUpperCase(),
+      side,
+      price,
+      size,
+      timeInForce,
+      reduceOnly,
+    };
+
+    const validation = validateOrderForm(formData);
+    
+    if (!validation.success) {
+      setValidationErrors(validation.errors || ['Validation failed']);
       toast({
         title: 'Validation Error',
-        description: 'Price and size are required',
+        description: validation.errors?.[0] || 'Invalid order data',
         variant: 'destructive',
       });
       return;
@@ -34,19 +52,12 @@ export const OrderPanel = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${PYTHON_PROXY_URL}/api/orders/create`, {
+      const response = await fetch(API_ENDPOINTS.createOrder, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          market,
-          side,
-          price,
-          size,
-          timeInForce,
-          reduceOnly,
-        }),
+        body: JSON.stringify(validation.data),
       });
 
       const result = await response.json();
@@ -84,6 +95,19 @@ export const OrderPanel = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc list-inside space-y-1">
+                {validationErrors.map((error, idx) => (
+                  <li key={idx} className="text-sm">{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="market">Market</Label>
