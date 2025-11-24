@@ -60,9 +60,9 @@ class OrderManager:
         )
         
         # Create trading client with Starknet mainnet config
-        self.client = PerpetualTradingClient.create(
-            STARKEX_MAINNET_CONFIG,
-            self.account
+        self.client = PerpetualTradingClient(
+            config=STARKEX_MAINNET_CONFIG,
+            account=self.account
         )
         
         print(f"✅ OrderManager initialized with x10 SDK")
