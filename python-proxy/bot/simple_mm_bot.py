@@ -17,8 +17,7 @@ def get_current_price(market: str) -> float:
     """
     Get current market price from broadcaster cache or public prices
     """
-    # Import here to avoid circular dependency
-    from main import BROADCASTER_CACHE
+    from shared_state import BROADCASTER_CACHE
     
     # Try to get from positions data
     positions = BROADCASTER_CACHE.get("positions", {})
