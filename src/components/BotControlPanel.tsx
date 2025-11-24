@@ -13,7 +13,7 @@ export const BotControlPanel = () => {
   const [isStopping, setIsStopping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [configForm, setConfigForm] = useState({
-    market: botStatus?.config.market || 'BTC-PERP',
+    market: botStatus?.config.market || 'BTC-USD',
     spread_percentage: botStatus?.config.spread_percentage || 0.001,
     order_size: botStatus?.config.order_size || '0.01',
     refresh_interval: botStatus?.config.refresh_interval || 5,
@@ -184,7 +184,7 @@ export const BotControlPanel = () => {
               value={configForm.market}
               onChange={(e) => setConfigForm({ ...configForm, market: e.target.value })}
               disabled={isRunning}
-              placeholder="BTC-PERP"
+              placeholder="BTC-USD"
             />
           </div>
 
