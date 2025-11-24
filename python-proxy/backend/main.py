@@ -8,7 +8,7 @@ from typing import Dict, Any, Set, Optional, Literal
 import json
 import time
 from datetime import datetime
-from order_manager import get_order_manager
+from bot.order_manager import get_order_manager
 
 # Try to import bot module with error handling
 try:
@@ -49,7 +49,7 @@ print(f"🎯 BASE_URL: {BASE_URL}")
 
 # ============= BROADCASTER GLOBAL STATE =============
 # Import shared state to avoid circular dependencies
-from shared_state import BROADCASTER_CACHE, BROADCAST_CLIENTS
+from backend.shared_state import BROADCASTER_CACHE, BROADCAST_CLIENTS
 
 # Poller state tracking
 TRADES_POLL_COUNTER = 0  # Counter to track when to poll trades (every 20 cycles = 5 seconds)
@@ -469,7 +469,7 @@ async def get_trades():
 
 
 # ============= MARKET MAKING BOT ENDPOINTS =============
-from bot_logger import get_bot_logs, clear_bot_logs
+from bot.bot_logger import get_bot_logs, clear_bot_logs
 
 @app.get("/api/bot/logs")
 async def api_bot_logs(limit: int = 100):
